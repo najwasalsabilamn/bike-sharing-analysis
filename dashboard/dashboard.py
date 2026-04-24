@@ -1,227 +1,147 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.express as px
 import os
 
-# ── CONFIG ─────────────────────────────────────────
-st.set_page_config(
-    page_title="Bike Sharing Dashboard",
-    page_icon="🚴",
-    layout="wide"
-)
+# ── CONFIG ─────────────────────────────
+st.set_page_config(layout="wide")
 
-# ── CUSTOM DARK STYLE ──────────────────────────────
+# ── STYLE ─────────────────────────────
 st.markdown("""
 <style>
-.stApp {
-    background-color: #0E1117;
-    color: #EAEAEA;
+body {
+    background-color: #0B0F19;
 }
-section[data-testid="stMetric"] {
-    background-color: #1A1F2B;
-    padding: 15px;
-    border-radius: 12px;
-    transition: 0.3s;
+.block-container {
+    padding-top: 2rem;
 }
-section[data-testid="stMetric"]:hover {
-    transform: scale(1.05);
+
+/* CARD */
+.card {
+    background: #111827;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+/* TITLE */
+.title {
+    font-size: 40px;
+    font-weight: 700;
+    color: white;
+}
+
+/* SUB */
+.sub {
+    color: #9CA3AF;
+    margin-bottom: 20px;
+}
+
+/* METRIC */
+.metric {
+    font-size: 28px;
+    font-weight: bold;
+}
+
+/* SECTION */
+.section {
+    margin-top: 30px;
+    margin-bottom: 10px;
+    font-size: 22px;
+    font-weight: 600;
+    color: white;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ── LOAD DATA ──────────────────────────────────────
+# ── LOAD DATA ─────────────────────────
 @st.cache_data
-def load_data():
-    base = os.path.dirname(__file__)
-    path = os.path.join(base, "main_data.csv")
+def load():
+    path = os.path.join(os.path.dirname(__file__), "main_data.csv")
     df = pd.read_csv(path)
     df["dteday"] = pd.to_datetime(df["dteday"])
     return df
 
-try:
-    df = load_data()
-except:
-    st.error("❌ File main_data.csv tidak ditemukan")
-    st.stop()
+df = load()
 
-# ── PREPROCESS ─────────────────────────────────────
-season_map  = {1: "Spring", 2: "Summer", 3: "Fall", 4: "Winter"}
-weather_map = {1: "Clear", 2: "Mist/Cloudy", 3: "Light Rain/Snow", 4: "Heavy Rain"}
-
-df["season_label"] = df["season"].map(season_map)
-df["weather_label"] = df["weathersit"].map(weather_map)
+# ── PREPROCESS ────────────────────────
 df["year"] = df["yr"].map({0: 2011, 1: 2012})
+df["season"] = df["season"].map({1:"Spring",2:"Summer",3:"Fall",4:"Winter"})
+df["weather"] = df["weathersit"].map({1:"Clear",2:"Cloudy",3:"Rain"})
 
-df["temp_c"] = df["temp"] * 41
-df["hum_pct"] = df["hum"] * 100
-
-def segment(cnt):
-    if cnt < 2000:
-        return "Low Usage"
-    elif cnt <= 5000:
-        return "Medium Usage"
-    return "High Usage"
-
-df["usage_segment"] = df["cnt"].apply(segment)
-
-# ── SIDEBAR ────────────────────────────────────────
+# ── SIDEBAR ──────────────────────────
 with st.sidebar:
-    st.title("🚴 Bike Dashboard")
+    st.title("🚴 Filter")
 
-    with st.expander("📅 Filter Waktu", True):
-        years = sorted(df["year"].unique())
-        selected_years = st.multiselect("Tahun", years, years)
+    year = st.multiselect("Year", df["year"].unique(), df["year"].unique())
+    season = st.multiselect("Season", df["season"].unique(), df["season"].unique())
 
-        date_range = st.date_input(
-            "Tanggal",
-            [df["dteday"].min(), df["dteday"].max()]
-        )
+filtered = df[(df["year"].isin(year)) & (df["season"].isin(season))]
 
-    with st.expander("🌦️ Filter Kondisi"):
-        seasons = df["season_label"].unique()
-        selected_seasons = st.multiselect("Musim", seasons, seasons)
+# ── HEADER ───────────────────────────
+st.markdown('<div class="title">🚴 Bike Dashboard</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub">Clean & Modern Data Visualization</div>', unsafe_allow_html=True)
 
-# ── FILTER ─────────────────────────────────────────
-filtered = df[
-    (df["year"].isin(selected_years)) &
-    (df["season_label"].isin(selected_seasons))
-]
+# ── METRICS ──────────────────────────
+col1, col2, col3 = st.columns(3)
 
-if len(date_range) == 2:
-    filtered = filtered[
-        (filtered["dteday"] >= pd.Timestamp(date_range[0])) &
-        (filtered["dteday"] <= pd.Timestamp(date_range[1]))
-    ]
+with col1:
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown("Total")
+    st.markdown(f'<div class="metric">{filtered["cnt"].sum():,.0f}</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# ── HEADER ─────────────────────────────────────────
-st.title("🚴 Bike Sharing Dashboard")
-st.caption("Analisis penyewaan sepeda Washington D.C.")
+with col2:
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown("Average")
+    st.markdown(f'<div class="metric">{filtered["cnt"].mean():,.0f}</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# ── METRICS ────────────────────────────────────────
-c1, c2, c3, c4 = st.columns(4)
+with col3:
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown("Max")
+    st.markdown(f'<div class="metric">{filtered["cnt"].max():,.0f}</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-total = filtered["cnt"].sum()
-avg = filtered["cnt"].mean()
+# ── TREND ────────────────────────────
+st.markdown('<div class="section">📈 Monthly Trend</div>', unsafe_allow_html=True)
 
-with c1:
-    st.metric("Total", f"{total:,.0f}")
+monthly = filtered.groupby("mnth")["cnt"].mean().reset_index()
 
-with c2:
-    st.metric("Rata-rata", f"{avg:,.0f}")
-
-with c3:
-    st.metric("Max", f"{filtered['cnt'].max():,.0f}")
-
-with c4:
-    casual_pct = filtered["casual"].sum() / total * 100 if total else 0
-    st.metric("Casual %", f"{casual_pct:.1f}%")
-
-st.divider()
-
-# ── INSIGHT ────────────────────────────────────────
-if avg > 5000:
-    st.success("📈 Penyewaan tinggi (peak season)")
-elif avg > 3000:
-    st.info("📊 Penyewaan stabil")
-else:
-    st.warning("📉 Penyewaan rendah")
-
-# ── TREN BULANAN ───────────────────────────────────
-st.subheader("📈 Tren Bulanan")
-
-monthly = filtered.groupby(["year", "mnth"])["cnt"].mean().reset_index()
-
-fig = px.line(
-    monthly,
-    x="mnth",
-    y="cnt",
-    color="year",
-    markers=True
+fig = px.line(monthly, x="mnth", y="cnt", markers=True)
+fig.update_layout(
+    template="plotly_dark",
+    plot_bgcolor="#111827",
+    paper_bgcolor="#111827",
 )
 
-fig.update_layout(template="plotly_dark")
 st.plotly_chart(fig, use_container_width=True)
 
-# ── MUSIM ──────────────────────────────────────────
-st.subheader("🌤️ Pengaruh Musim")
+# ── SEASON ───────────────────────────
+col4, col5 = st.columns(2)
 
-season_avg = filtered.groupby("season_label")["cnt"].mean().reset_index()
+with col4:
+    st.markdown('<div class="section">🌤️ Season</div>', unsafe_allow_html=True)
+    season_avg = filtered.groupby("season")["cnt"].mean().reset_index()
+    fig2 = px.bar(season_avg, x="season", y="cnt", color="season")
+    fig2.update_layout(template="plotly_dark")
+    st.plotly_chart(fig2, use_container_width=True)
 
-fig2 = px.bar(
-    season_avg,
-    x="season_label",
-    y="cnt",
-    color="season_label",
-    text="cnt"
-)
+with col5:
+    st.markdown('<div class="section">🌧️ Weather</div>', unsafe_allow_html=True)
+    weather_avg = filtered.groupby("weather")["cnt"].mean().reset_index()
+    fig3 = px.bar(weather_avg, x="weather", y="cnt", color="weather")
+    fig3.update_layout(template="plotly_dark")
+    st.plotly_chart(fig3, use_container_width=True)
 
-fig2.update_layout(template="plotly_dark")
-st.plotly_chart(fig2, use_container_width=True)
+# ── PIE ──────────────────────────────
+st.markdown('<div class="section">📊 Usage Distribution</div>', unsafe_allow_html=True)
 
-# ── CUACA ──────────────────────────────────────────
-st.subheader("🌦️ Pengaruh Cuaca")
+seg = filtered["cnt"].apply(lambda x: "Low" if x<2000 else "Medium" if x<5000 else "High")
+seg = seg.value_counts().reset_index()
+seg.columns = ["segment","count"]
 
-weather_avg = filtered.groupby("weather_label")["cnt"].mean().reset_index()
-
-fig3 = px.bar(
-    weather_avg,
-    x="weather_label",
-    y="cnt",
-    color="weather_label",
-    text="cnt"
-)
-
-fig3.update_layout(template="plotly_dark")
-st.plotly_chart(fig3, use_container_width=True)
-
-# ── HEATMAP ────────────────────────────────────────
-st.subheader("🌡️ Heatmap Musim vs Cuaca")
-
-pivot = filtered.pivot_table(
-    values="cnt",
-    index="season_label",
-    columns="weather_label",
-    aggfunc="mean"
-)
-
-fig4 = px.imshow(
-    pivot,
-    text_auto=True,
-    aspect="auto",
-    color_continuous_scale="YlOrRd"
-)
-
+fig4 = px.pie(seg, names="segment", values="count")
 fig4.update_layout(template="plotly_dark")
+
 st.plotly_chart(fig4, use_container_width=True)
-
-# ── SEGMENTASI ─────────────────────────────────────
-st.subheader("📊 Segmentasi")
-
-seg = filtered["usage_segment"].value_counts().reset_index()
-seg.columns = ["segment", "count"]
-
-fig5 = px.pie(
-    seg,
-    names="segment",
-    values="count"
-)
-
-fig5.update_layout(template="plotly_dark")
-st.plotly_chart(fig5, use_container_width=True)
-
-# ── INTERAKTIF FILTER SEGMENT ──────────────────────
-selected_segment = st.selectbox(
-    "Filter Segment",
-    ["All", "Low Usage", "Medium Usage", "High Usage"]
-)
-
-if selected_segment != "All":
-    filtered = filtered[filtered["usage_segment"] == selected_segment]
-
-# ── TABLE ──────────────────────────────────────────
-with st.expander("📋 Lihat Data"):
-    st.dataframe(filtered)
-
-# ── FOOTER ─────────────────────────────────────────
-st.caption("© 2024 Dashboard Analisis Data")
