@@ -37,7 +37,7 @@ TEXT_HI    = "#f9fafb"
 TEXT_MED   = "#9ca3af"
 TEXT_LO    = "#4b5563"
 
-# Plotly base layout
+# Plotly base layout (no xaxis/yaxis — applied via update_xaxes/update_yaxes per chart)
 PLOTLY_LAYOUT = dict(
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
@@ -49,24 +49,26 @@ PLOTLY_LAYOUT = dict(
         borderwidth=1,
         font=dict(color=TEXT_MED, size=10)
     ),
-    xaxis=dict(
-        gridcolor=BORDER,
-        zerolinecolor=BORDER,
-        tickfont=dict(color=TEXT_LO),
-        linecolor=BORDER,
-    ),
-    yaxis=dict(
-        gridcolor=BORDER,
-        zerolinecolor=BORDER,
-        tickfont=dict(color=TEXT_LO),
-        linecolor=BORDER,
-    ),
     hoverlabel=dict(
         bgcolor=BG_CARD2,
         bordercolor=CYAN,
         font=dict(color=TEXT_HI, size=12),
     )
 )
+
+# Helper: apply dark axes to any figure
+def dark_axes(fig, rows=None, cols=None):
+    ax_style = dict(gridcolor=BORDER, zerolinecolor=BORDER,
+                    tickfont=dict(color=TEXT_LO), linecolor=BORDER)
+    if rows:
+        for r in rows:
+            for c in cols:
+                fig.update_xaxes(ax_style, row=r, col=c)
+                fig.update_yaxes(ax_style, row=r, col=c)
+    else:
+        fig.update_xaxes(ax_style)
+        fig.update_yaxes(ax_style)
+    return fig
 
 # ═══════════════════════════════════════════════════════════
 # CSS
@@ -656,20 +658,12 @@ with c1:
     fig.update_layout(
         **PLOTLY_LAYOUT,
         height=280,
-        xaxis=dict(
-            tickvals=list(range(1,13)),
-            ticktext=months,
-            gridcolor=BORDER,
-            tickfont=dict(color=TEXT_LO, size=10),
-        ),
-        yaxis=dict(
-            gridcolor=BORDER,
-            tickfont=dict(color=TEXT_LO),
-            tickformat=',.0f'
-        ),
         legend=dict(x=0.01, y=0.99, bgcolor='rgba(0,0,0,0)',
                     borderwidth=0, font=dict(size=11))
     )
+    fig.update_xaxes(tickvals=list(range(1,13)), ticktext=months,
+                     gridcolor=BORDER, tickfont=dict(color=TEXT_LO, size=10))
+    fig.update_yaxes(gridcolor=BORDER, tickfont=dict(color=TEXT_LO), tickformat=',.0f')
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar':False})
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -737,13 +731,9 @@ with c3:
         textfont=dict(color=TEXT_MED, size=11),
         hovertemplate="<b>%{x}</b><br>Rata-rata: <b>%{y:,.0f}</b><extra></extra>"
     ))
-    fig3.update_layout(
-        **PLOTLY_LAYOUT,
-        height=270,
-        yaxis=dict(gridcolor=BORDER, tickformat=',.0f', tickfont=dict(color=TEXT_LO)),
-        xaxis=dict(tickfont=dict(color=TEXT_MED, size=11), gridcolor='rgba(0,0,0,0)'),
-        bargap=0.4,
-    )
+    fig3.update_layout(**PLOTLY_LAYOUT, height=270, bargap=0.4)
+    fig3.update_xaxes(tickfont=dict(color=TEXT_MED, size=11), gridcolor='rgba(0,0,0,0)')
+    fig3.update_yaxes(gridcolor=BORDER, tickformat=',.0f', tickfont=dict(color=TEXT_LO))
     st.plotly_chart(fig3, use_container_width=True, config={'displayModeBar':False})
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -774,13 +764,9 @@ with c4:
         font=dict(size=9, color=ROSE),
         xanchor='center'
     )
-    fig4.update_layout(
-        **PLOTLY_LAYOUT,
-        height=270,
-        yaxis=dict(gridcolor=BORDER, tickformat=',.0f', tickfont=dict(color=TEXT_LO)),
-        xaxis=dict(tickfont=dict(color=TEXT_MED, size=11), gridcolor='rgba(0,0,0,0)'),
-        bargap=0.4,
-    )
+    fig4.update_layout(**PLOTLY_LAYOUT, height=270, bargap=0.4)
+    fig4.update_xaxes(tickfont=dict(color=TEXT_MED, size=11), gridcolor='rgba(0,0,0,0)')
+    fig4.update_yaxes(gridcolor=BORDER, tickformat=',.0f', tickfont=dict(color=TEXT_LO))
     st.plotly_chart(fig4, use_container_width=True, config={'displayModeBar':False})
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -903,13 +889,9 @@ with tab2:
         hovertemplate="<b>%{y}</b> pukul <b>%{x}</b><br>Rata-rata: <b>%{z:,.0f}</b><extra></extra>",
         xgap=2, ygap=2
     ))
-    fig6.update_layout(
-        **PLOTLY_LAYOUT,
-        height=300,
-        xaxis=dict(tickfont=dict(color=TEXT_LO, size=9), gridcolor='rgba(0,0,0,0)',
-                   tickangle=0, side='bottom'),
-        yaxis=dict(tickfont=dict(color=TEXT_MED, size=11), gridcolor='rgba(0,0,0,0)'),
-    )
+    fig6.update_layout(**PLOTLY_LAYOUT, height=300)
+    fig6.update_xaxes(tickfont=dict(color=TEXT_LO, size=9), gridcolor='rgba(0,0,0,0)', tickangle=0, side='bottom')
+    fig6.update_yaxes(tickfont=dict(color=TEXT_MED, size=11), gridcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig6, use_container_width=True, config={'displayModeBar':False})
 
     st.markdown(f"""
