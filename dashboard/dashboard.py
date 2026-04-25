@@ -30,21 +30,23 @@ def load_data():
 try:
     main_df = load_data()
 except FileNotFoundError:
-    st.error("❌ File `main_data.csv` tidak ditemukan di folder `dashboard/`. "
-             "Jalankan notebook terlebih dahulu untuk menghasilkan file tersebut, "
-             "atau letakkan `day.csv` yang telah dibersihkan sebagai `main_data.csv`.")
+    st.error("❌ File `main_data.csv` tidak ditemukan di folder `dashboard/`.")
     st.stop()
 
-# Mapping label
+# Mapping label — pakai nama kolom ASLI dari day.csv
 season_map  = {1: "Spring", 2: "Summer", 3: "Fall", 4: "Winter"}
 weather_map = {1: "Clear", 2: "Mist/Cloudy", 3: "Light Rain/Snow", 4: "Heavy Rain"}
 weekday_map = {0: "Sun", 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat"}
 
-for col, mapping in [("season_label", season_map), ("weather_label", weather_map),
-                     ("weekday_label", weekday_map)]:
-    src = col.replace("_label", "")
-    if src in main_df.columns and col not in main_df.columns:
-        main_df[col] = main_df[src].map(mapping)
+# FIX: kolom cuaca di day.csv namanya 'weathersit', bukan 'weather'
+col_map = {
+    "season_label":  ("season",     season_map),
+    "weather_label": ("weathersit", weather_map),
+    "weekday_label": ("weekday",    weekday_map),
+}
+for new_col, (src_col, mapping) in col_map.items():
+    if src_col in main_df.columns and new_col not in main_df.columns:
+        main_df[new_col] = main_df[src_col].map(mapping)
 
 if "year" not in main_df.columns and "yr" in main_df.columns:
     main_df["year"] = main_df["yr"].map({0: 2011, 1: 2012})
@@ -64,8 +66,6 @@ main_df["usage_segment"] = main_df["cnt"].apply(segment_usage)
 
 # ── Sidebar filter ───────────────────────────────────────────────────────────
 with st.sidebar:
-    st.image("https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/bicycle.svg",
-             width=60)
     st.title("🚴 Bike Sharing\nDashboard")
     st.markdown("---")
 
@@ -115,7 +115,6 @@ st.markdown("---")
 # ── Tren Bulanan ─────────────────────────────────────────────────────────────
 st.subheader("📈 Tren Penyewaan Bulanan")
 monthly = filtered.groupby(["year", "mnth"])["cnt"].mean().reset_index()
-monthly["label"] = monthly["mnth"].apply(lambda m: pd.Timestamp(f"2000-{m:02d}-01").strftime("%b"))
 
 fig, ax = plt.subplots(figsize=(12, 4))
 for yr, color in [(2011, "#1565C0"), (2012, "#E65100")]:
@@ -160,9 +159,10 @@ with c1:
 with c2:
     weather_order   = ["Clear", "Mist/Cloudy", "Light Rain/Snow"]
     palette_weather = {"Clear": "#FFD700", "Mist/Cloudy": "#90A4AE", "Light Rain/Snow": "#64B5F6"}
-    w_agg = (filtered[filtered["weather_label"] != "Heavy Rain"]
-             .groupby("weather_label")["cnt"].mean()
-             .reindex([w for w in weather_order if w in filtered["weather_label"].unique()])
+    # FIX: filter Heavy Rain dulu, baru groupby
+    w_filtered = filtered[filtered["weather_label"].isin(weather_order)]
+    w_agg = (w_filtered.groupby("weather_label")["cnt"].mean()
+             .reindex([w for w in weather_order if w in w_filtered["weather_label"].unique()])
              .reset_index())
     fig3, ax3 = plt.subplots(figsize=(5.5, 4))
     bars3 = ax3.bar(w_agg["weather_label"], w_agg["cnt"],
@@ -180,11 +180,12 @@ with c2:
 
 # ── Heatmap Musim × Cuaca ─────────────────────────────────────────────────────
 st.subheader("🌡️ Heatmap: Musim × Kondisi Cuaca")
-pivot_data = (filtered[filtered["weather_label"] != "Heavy Rain"]
+hm_filtered = filtered[filtered["weather_label"].isin(weather_order)]
+pivot_data = (hm_filtered
               .groupby(["season_label", "weather_label"])["cnt"].mean()
               .unstack()
               .reindex(index=[s for s in season_order if s in filtered["season_label"].unique()],
-                       columns=[w for w in weather_order if w in filtered["weather_label"].unique()]))
+                       columns=[w for w in weather_order if w in hm_filtered["weather_label"].unique()]))
 if not pivot_data.empty:
     fig4, ax4 = plt.subplots(figsize=(8, 3.5))
     sns.heatmap(pivot_data, annot=True, fmt=".0f", cmap="YlOrRd",
