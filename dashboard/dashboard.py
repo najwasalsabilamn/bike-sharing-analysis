@@ -148,7 +148,6 @@ if fd.empty or fh.empty:
 # ── Header ──
 st.markdown("<h1 style='text-align:center; color:#1565C0;'>🚲 Bike Sharing Dashboard</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center; color:#888; margin-top:-8px;'>Capital Bikeshare · Washington D.C. · 2011–2012</p>", unsafe_allow_html=True)
-st.markdown("---")
 
 
 # ── KPI Cards ──
@@ -607,8 +606,3 @@ else:
     artinya suhu dan cuaca jauh lebih menentukan volume penggunaan dibanding tipe hari.
     </div>""", unsafe_allow_html=True)
 
-st.markdown("""
-<div style='text-align:center; color:#bbb; font-size:11px; padding:12px 0;'>
-    Bike Sharing Dashboard · Capital Bikeshare Washington D.C. 2011-2012 · Najwa Salsabila
-</div>
-""", unsafe_allow_html=True)
