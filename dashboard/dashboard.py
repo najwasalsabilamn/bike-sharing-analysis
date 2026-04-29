@@ -207,8 +207,6 @@ Peminjaman tertinggi terjadi pada <b>{peak_m['period']}</b> ({int(peak_m['cnt'])
 sedangkan terendah pada <b>{low_m['period']}</b> ({int(low_m['cnt']):,} peminjaman).
 </div>""", unsafe_allow_html=True)
 
-st.markdown("---")
-
 
 # ════════════════════════════════════════════
 # PERTANYAAN 1
@@ -306,7 +304,6 @@ with st.expander("Lihat tabel ringkasan Pertanyaan 1"):
         t2.columns = ['Rata-rata', 'Median', 'Std Dev', 'Jumlah Hari']
         st.dataframe(t2.sort_values('Rata-rata', ascending=False), use_container_width=True)
 
-st.markdown("---")
 
 
 # ════════════════════════════════════════════
@@ -451,7 +448,6 @@ Di hari libur, pola berubah menjadi satu puncak di sekitar jam 13.00, dengan pro
 dibanding hari kerja. Heatmap mengonfirmasi bahwa slot 07-09 dan 16-19 di Senin-Jumat secara konsisten paling padat.
 </div>""", unsafe_allow_html=True)
 
-st.markdown("---")
 
 
 # ════════════════════════════════════════════
@@ -611,7 +607,6 @@ else:
     artinya suhu dan cuaca jauh lebih menentukan volume penggunaan dibanding tipe hari.
     </div>""", unsafe_allow_html=True)
 
-st.markdown("---")
 st.markdown("""
 <div style='text-align:center; color:#bbb; font-size:11px; padding:12px 0;'>
     Bike Sharing Dashboard · Capital Bikeshare Washington D.C. 2011-2012 · Najwa Salsabila
