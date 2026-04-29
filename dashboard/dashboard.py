@@ -181,7 +181,7 @@ if not filtered_day.empty:
 # ============================================================
 # DISTRIBUTION
 # ============================================================
-if total > 0:
-    pct = casual/total
-    st.progress(int(pct*100))
-    st.caption(f"Casual {pct:.1%}")
+if pct > 0.5:
+    st.success("Mayoritas pengguna adalah Casual User")
+else:
+    st.info("Mayoritas pengguna adalah Registered User")
