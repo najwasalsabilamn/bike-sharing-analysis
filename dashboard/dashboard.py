@@ -178,10 +178,24 @@ if not filtered_day.empty:
     fig6 = px.bar(cluster_avg,x='usage_cluster',y='cnt',color='usage_cluster',title="🔵 Cluster")
     st.plotly_chart(fig6,use_container_width=True)
 
+
 # ============================================================
-# DISTRIBUTION
+# DISTRIBUTION (FIXED)
 # ============================================================
-if pct > 0.5:
-    st.success("Mayoritas pengguna adalah Casual User")
-else:
-    st.info("Mayoritas pengguna adalah Registered User")
+
+if total > 0:
+    pct = casual / total
+
+    pie_df = pd.DataFrame({
+        'User Type': ['Casual','Registered'],
+        'Count': [casual, reg]
+    })
+
+    fig = px.pie(pie_df, names='User Type', values='Count', title='👥 User Distribution')
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Insight otomatis
+    if pct > 0.5:
+        st.success("Mayoritas pengguna adalah Casual User")
+    else:
+        st.info("Mayoritas pengguna adalah Registered User")
