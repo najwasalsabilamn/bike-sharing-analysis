@@ -99,13 +99,17 @@ col4.metric("Min", f"{filtered_day['cnt'].min():,.0f}")
 # ============================================================
 st.markdown("### 🧠 Ringkasan Utama")
 
-st.info(
-    f"""
-- Aktivitas berada di level **{"tinggi" if avg>5000 else "sedang" if avg>3000 else "rendah"}**
-- Cuaca dan musim sangat mempengaruhi penggunaan
-- Ada pola jam penggunaan yang konsisten
+level = "tinggi" if avg > 5000 else "sedang" if avg > 3000 else "rendah"
 
-💡 Sepeda digunakan sebagai bagian dari aktivitas harian.
+st.markdown(
+    f"""
+Dari data yang ditampilkan, terlihat bahwa tingkat peminjaman sepeda secara umum berada di kategori **{level}**.
+
+Kalau diperhatikan lebih lanjut, jumlah peminjaman cenderung meningkat saat kondisi cuaca sedang baik dan pada musim tertentu. Sebaliknya, saat cuaca kurang mendukung, aktivitas juga ikut menurun.
+
+Selain itu, ada pola penggunaan yang cukup konsisten dalam sehari, di mana peminjaman biasanya meningkat pada jam-jam tertentu.
+
+Secara keseluruhan, sepeda di sini tampaknya tidak hanya digunakan untuk rekreasi, tetapi juga sebagai bagian dari aktivitas harian.
 """
 )
 
