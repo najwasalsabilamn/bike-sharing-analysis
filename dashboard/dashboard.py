@@ -3,58 +3,52 @@ import pandas as pd
 import plotly.express as px
 import os
 
-# ── CONFIG ─────────────────────────────
 st.set_page_config(layout="wide")
 
-# ── STYLE ─────────────────────────────
+# ── STYLE SUPER CLEAN ─────────────────────────────
 st.markdown("""
 <style>
-body {
-    background-color: #0B0F19;
+/* Background gradient */
+.stApp {
+    background: linear-gradient(135deg, #0f172a, #020617);
+    color: white;
 }
+
+/* Container spacing */
 .block-container {
     padding-top: 2rem;
 }
 
-/* CARD */
-.card {
-    background: #111827;
-    padding: 20px;
+/* Glass card */
+.glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
     border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
 }
 
-/* TITLE */
+/* Title */
 .title {
-    font-size: 40px;
+    font-size: 42px;
     font-weight: 700;
-    color: white;
 }
 
-/* SUB */
+/* Subtitle */
 .sub {
-    color: #9CA3AF;
-    margin-bottom: 20px;
+    color: #94A3B8;
+    margin-bottom: 30px;
 }
 
-/* METRIC */
+/* Metric */
 .metric {
-    font-size: 28px;
+    font-size: 30px;
     font-weight: bold;
-}
-
-/* SECTION */
-.section {
-    margin-top: 30px;
-    margin-bottom: 10px;
-    font-size: 22px;
-    font-weight: 600;
-    color: white;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ── LOAD DATA ─────────────────────────
+# ── LOAD DATA ─────────────────────────────────────
 @st.cache_data
 def load():
     path = os.path.join(os.path.dirname(__file__), "main_data.csv")
@@ -64,84 +58,94 @@ def load():
 
 df = load()
 
-# ── PREPROCESS ────────────────────────
+# ── PREPROCESS ────────────────────────────────────
 df["year"] = df["yr"].map({0: 2011, 1: 2012})
 df["season"] = df["season"].map({1:"Spring",2:"Summer",3:"Fall",4:"Winter"})
 df["weather"] = df["weathersit"].map({1:"Clear",2:"Cloudy",3:"Rain"})
 
-# ── SIDEBAR ──────────────────────────
+# ── SIDEBAR ───────────────────────────────────────
 with st.sidebar:
-    st.title("🚴 Filter")
-
+    st.title("⚙️ Filter")
     year = st.multiselect("Year", df["year"].unique(), df["year"].unique())
     season = st.multiselect("Season", df["season"].unique(), df["season"].unique())
 
 filtered = df[(df["year"].isin(year)) & (df["season"].isin(season))]
 
-# ── HEADER ───────────────────────────
+# ── HEADER ────────────────────────────────────────
 st.markdown('<div class="title">🚴 Bike Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub">Clean & Modern Data Visualization</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub">Modern analytics interface</div>', unsafe_allow_html=True)
 
-# ── METRICS ──────────────────────────
-col1, col2, col3 = st.columns(3)
+# ── METRIC CARDS ──────────────────────────────────
+c1, c2, c3 = st.columns(3)
 
-with col1:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown("Total")
+with c1:
+    st.markdown('<div class="glass">', unsafe_allow_html=True)
+    st.write("Total")
     st.markdown(f'<div class="metric">{filtered["cnt"].sum():,.0f}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-with col2:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown("Average")
+with c2:
+    st.markdown('<div class="glass">', unsafe_allow_html=True)
+    st.write("Average")
     st.markdown(f'<div class="metric">{filtered["cnt"].mean():,.0f}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-with col3:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown("Max")
+with c3:
+    st.markdown('<div class="glass">', unsafe_allow_html=True)
+    st.write("Max")
     st.markdown(f'<div class="metric">{filtered["cnt"].max():,.0f}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ── TREND ────────────────────────────
-st.markdown('<div class="section">📈 Monthly Trend</div>', unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
+
+# ── TREND ─────────────────────────────────────────
+st.markdown("### 📈 Trend")
 
 monthly = filtered.groupby("mnth")["cnt"].mean().reset_index()
 
 fig = px.line(monthly, x="mnth", y="cnt", markers=True)
+
 fig.update_layout(
     template="plotly_dark",
-    plot_bgcolor="#111827",
-    paper_bgcolor="#111827",
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)"
 )
 
+st.markdown('<div class="glass">', unsafe_allow_html=True)
 st.plotly_chart(fig, use_container_width=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
-# ── SEASON ───────────────────────────
+# ── ROW 2 ─────────────────────────────────────────
 col4, col5 = st.columns(2)
 
 with col4:
-    st.markdown('<div class="section">🌤️ Season</div>', unsafe_allow_html=True)
+    st.markdown("### 🌤️ Season")
     season_avg = filtered.groupby("season")["cnt"].mean().reset_index()
     fig2 = px.bar(season_avg, x="season", y="cnt", color="season")
-    fig2.update_layout(template="plotly_dark")
+    fig2.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)")
+    st.markdown('<div class="glass">', unsafe_allow_html=True)
     st.plotly_chart(fig2, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 with col5:
-    st.markdown('<div class="section">🌧️ Weather</div>', unsafe_allow_html=True)
+    st.markdown("### 🌧️ Weather")
     weather_avg = filtered.groupby("weather")["cnt"].mean().reset_index()
     fig3 = px.bar(weather_avg, x="weather", y="cnt", color="weather")
-    fig3.update_layout(template="plotly_dark")
+    fig3.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)")
+    st.markdown('<div class="glass">', unsafe_allow_html=True)
     st.plotly_chart(fig3, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# ── PIE ──────────────────────────────
-st.markdown('<div class="section">📊 Usage Distribution</div>', unsafe_allow_html=True)
+# ── PIE ───────────────────────────────────────────
+st.markdown("### 📊 Usage")
 
 seg = filtered["cnt"].apply(lambda x: "Low" if x<2000 else "Medium" if x<5000 else "High")
 seg = seg.value_counts().reset_index()
 seg.columns = ["segment","count"]
 
 fig4 = px.pie(seg, names="segment", values="count")
-fig4.update_layout(template="plotly_dark")
+fig4.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)")
 
+st.markdown('<div class="glass">', unsafe_allow_html=True)
 st.plotly_chart(fig4, use_container_width=True)
+st.markdown('</div>', unsafe_allow_html=True)
