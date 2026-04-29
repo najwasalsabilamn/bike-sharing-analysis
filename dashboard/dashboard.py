@@ -1,54 +1,46 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
-import seaborn as sns
+import plotly.express as px
 
 # ============================================================
-# KONFIGURASI HALAMAN & CSS KUSTOM
+# PAGE CONFIG
 # ============================================================
 st.set_page_config(
-    page_title="BikeFlow | Analytics Dashboard",
+    page_title="Bike Sharing Dashboard",
     page_icon="🚲",
     layout="wide"
 )
 
-# Custom CSS untuk tampilan lebih modern
+# ============================================================
+# CUSTOM CSS (UI UPGRADE)
+# ============================================================
 st.markdown("""
-    <style>
-    .main { background-color: #f8f9fa; }
-    .stMetric { 
-        background-color: #ffffff; 
-        padding: 15px; 
-        border-radius: 10px; 
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    [data-testid="stMetricValue"] { font-size: 28px !important; color: #1e88e5; }
-    div[data-testid="stVerticalBlock"] > div[style*="flex-direction: column;"] > div[data-testid="stVerticalBlock"] {
-        border: 1px solid #e6e9ef;
-        padding: 20px;
-        border-radius: 15px;
-        background-color: white;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# Styling matplotlib
-plt.rcParams.update({
-    'axes.facecolor': '#ffffff',
-    'figure.facecolor': '#ffffff',
-    'axes.spines.top': False,
-    'axes.spines.right': False,
-    'font.family': 'sans-serif'
-})
+<style>
+.main {
+    background-color: #F8FAFC;
+}
+.block-container {
+    padding-top: 2rem;
+}
+.metric-card {
+    background: white;
+    padding: 15px;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    transition: 0.2s;
+}
+.metric-card:hover {
+    transform: scale(1.03);
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ============================================================
 # LOAD DATA
-# =============================
+# ============================================================
 @st.cache_data
 def load_data():
-    # Pastikan file ada di path yang benar
     day_df = pd.read_csv('dashboard/main_data.csv')
     hour_df = pd.read_csv('data/hour.csv')
 
@@ -59,143 +51,140 @@ def load_data():
 
     for df in [day_df, hour_df]:
         df['dteday'] = pd.to_datetime(df['dteday'])
-        df['yr_label'] = df['yr'].map(yr_map)
+        df['year'] = df['dteday'].dt.year
+        df['month'] = df['dteday'].dt.month
         df['season_label'] = df['season'].map(season_map)
         df['weather_label'] = df['weathersit'].map(weather_map)
         df['weekday_label'] = df['weekday'].map(weekday_map)
-    
-    # Clustering sederhana
-    p33, p67 = day_df['cnt'].quantile([0.33, 0.67])
-    day_df['usage_cluster'] = pd.cut(
-        day_df['cnt'], bins=[0, p33, p67, day_df['cnt'].max() + 1],
-        labels=['Low Usage', 'Medium Usage', 'High Usage']
-    )
+        df['yr_label'] = df['yr'].map(yr_map)
+
     return day_df, hour_df
+
 
 day_df, hour_df = load_data()
 
 # ============================================================
-# SIDEBAR DENGAN INTERAKSI LEBIH OKE
+# SIDEBAR
 # ============================================================
-with st.sidebar:
-    st.image("https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&q=80&w=300", use_column_width=True)
-    st.title("🚲 BikeFlow")
-    st.caption("Monitoring Dashboard v2.1")
-    
-    st.markdown("---")
-    # Filter Rentang Tanggal
-    min_date = day_df['dteday'].min()
-    max_date = day_df['dteday'].max()
-    
-    start_date, end_date = st.date_input(
-        "Pilih Rentang Waktu:",
-        value=[min_date, max_date],
-        min_value=min_date,
-        max_value=max_date
-    )
-    
-    selected_season = st.multiselect(
-        "Pilih Musim:", 
-        options=day_df['season_label'].unique(),
-        default=day_df['season_label'].unique()
-    )
+st.sidebar.title("🚲 Bike Sharing")
+st.sidebar.markdown("### Filter Data")
 
-# Filter Data Berdasarkan Sidebar
-mask = (day_df['dteday'] >= pd.Timestamp(start_date)) & \
-       (day_df['dteday'] <= pd.Timestamp(end_date)) & \
-       (day_df['season_label'].isin(selected_season))
-filtered_day = day_df.loc[mask]
-filtered_hour = hour_df[hour_df['dteday'].isin(filtered_day['dteday'])]
+selected_yr = st.sidebar.selectbox("Pilih Tahun", ['Semua','2011','2012'])
+selected_month = st.sidebar.multiselect(
+    "Pilih Bulan",
+    sorted(day_df['month'].unique()),
+    default=sorted(day_df['month'].unique())
+)
 
 # ============================================================
-# MAIN CONTENT
+# FILTER DATA
 # ============================================================
-st.title("🚲 Bike Sharing Analytics")
-st.markdown(f"Menganalisis penggunaan dari **{start_date}** hingga **{end_date}**")
+filtered_day = day_df.copy()
 
-# KPI dengan Container Berwarna
-kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-with kpi1:
-    st.metric("Total Rides", f"{filtered_day['cnt'].sum():,.0f}")
-with kpi2:
-    st.metric("Daily Avg", f"{filtered_day['cnt'].mean():,.0f}")
-with kpi3:
-    registered_pct = (filtered_day['registered'].sum() / filtered_day['cnt'].sum()) * 100
-    st.metric("Registered User", f"{registered_pct:.1f}%", delta="Loyalty")
-with kpi4:
-    casual_pct = (filtered_day['casual'].sum() / filtered_day['cnt'].sum()) * 100
-    st.metric("Casual User", f"{casual_pct:.1f}%", delta_color="normal")
+if selected_yr != 'Semua':
+    filtered_day = filtered_day[filtered_day['yr_label'] == selected_yr]
 
-st.markdown("### 📊 Ringkasan Visual")
+filtered_day = filtered_day[filtered_day['month'].isin(selected_month)]
 
-# Grid Layout untuk Grafik Utama
-col_left, col_right = st.columns([2, 1])
+# ============================================================
+# HEADER
+# ============================================================
+st.markdown("""
+<h1 style='text-align: center;'>🚲 Bike Sharing Dashboard</h1>
+<p style='text-align: center; color: gray;'>Analisis interaktif penggunaan sepeda</p>
+""", unsafe_allow_html=True)
 
-with col_left:
-    with st.container(border=True):
-        st.subheader("Tren Peminjaman Waktu ke Waktu")
-        fig, ax = plt.subplots(figsize=(10, 4))
-        # Resample per minggu agar garis lebih smooth (tidak terlalu 'noisy')
-        resampled_data = filtered_day.set_index('dteday')['cnt'].resample('W').mean()
-        ax.plot(resampled_data.index, resampled_data.values, color='#1e88e5', linewidth=2.5)
-        ax.fill_between(resampled_data.index, resampled_data.values, alpha=0.1, color='#1e88e5')
-        ax.set_ylabel("Rata-rata Peminjaman")
-        st.pyplot(fig)
+# ============================================================
+# KPI CARDS
+# ============================================================
+def metric_card(title, value, subtitle):
+    st.markdown(f"""
+    <div class="metric-card">
+        <h4>{title}</h4>
+        <h2>{value}</h2>
+        <p style='color:gray'>{subtitle}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-with col_right:
-    with st.container(border=True):
-        st.subheader("Distribusi User")
-        # Pie chart donat untuk proporsi user
-        fig_pie, ax_pie = plt.subplots(figsize=(4, 4))
-        labels = ['Registered', 'Casual']
-        sizes = [filtered_day['registered'].sum(), filtered_day['casual'].sum()]
-        ax_pie.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, 
-                   colors=['#1e88e5', '#ffb74d'], pctdistance=0.85, 
-                   wedgeprops={'width': 0.3, 'edgecolor': 'w'})
-        st.pyplot(fig_pie)
+col1, col2, col3, col4 = st.columns(4)
 
-# Heatmap & Jam Section
+total_rides = filtered_day['cnt'].sum()
+avg_daily = filtered_day['cnt'].mean()
+total_casual = filtered_day['casual'].sum()
+total_registered = filtered_day['registered'].sum()
+
+with col1:
+    metric_card("Total Ride", f"{total_rides:,.0f}", "Total keseluruhan")
+with col2:
+    metric_card("Avg Daily", f"{avg_daily:,.0f}", "Rata-rata harian")
+with col3:
+    metric_card("Casual", f"{total_casual:,.0f}", f"{total_casual/total_rides:.1%}")
+with col4:
+    metric_card("Registered", f"{total_registered:,.0f}", f"{total_registered/total_rides:.1%}")
+
 st.markdown("---")
-col_bottom_1, col_bottom_2 = st.columns([1, 1])
 
-with col_bottom_1:
-    with st.container(border=True):
-        st.subheader("⏰ Peak Hours (Senin - Minggu)")
-        pivot = filtered_hour.pivot_table(index='weekday_label', columns='hr', values='cnt', aggfunc='mean')
-        day_order = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
-        pivot = pivot.reindex(day_order)
-        
-        fig_heat, ax_heat = plt.subplots(figsize=(10, 6))
-        sns.heatmap(pivot, cmap="Blues", ax=ax_heat, cbar=False, annot=False)
-        ax_heat.set_ylabel("")
-        ax_heat.set_xlabel("Jam Operasional")
-        st.pyplot(fig_heat)
+# ============================================================
+# TREND (PLOTLY)
+# ============================================================
+monthly = filtered_day.groupby(['year','month'], as_index=False)['cnt'].sum()
+monthly['period'] = monthly['year'].astype(str) + '-' + monthly['month'].astype(str)
 
-with col_bottom_2:
-    with st.container(border=True):
-        st.subheader("🌡️ Korelasi Suhu vs Rental")
-        fig_scatter, ax_scatter = plt.subplots(figsize=(10, 6))
-        sns.regplot(data=filtered_day, x='temp', y='cnt', 
-                    scatter_kws={'alpha':0.3, 'color':'#1e88e5'}, 
-                    line_kws={'color':'#ff5252'}, ax=ax_scatter)
-        ax_scatter.set_xlabel("Normalized Temperature")
-        ax_scatter.set_ylabel("Total Rental")
-        st.pyplot(fig_scatter)
+fig = px.line(
+    monthly,
+    x="period",
+    y="cnt",
+    color="year",
+    markers=True,
+    title="📈 Tren Peminjaman Bulanan"
+)
 
-# Section Clustering yang lebih bersih
+fig.update_layout(hovermode="x unified")
+st.plotly_chart(fig, use_container_width=True)
+
+# Insight otomatis
+peak = monthly.loc[monthly['cnt'].idxmax()]
+st.info(f"📌 Puncak peminjaman terjadi pada {peak['period']} dengan total {peak['cnt']:,.0f}")
+
+# ============================================================
+# WEATHER EFFECT
+# ============================================================
+weather_avg = filtered_day.groupby('weather_label')['cnt'].mean().reset_index()
+
+fig2 = px.bar(
+    weather_avg,
+    x='weather_label',
+    y='cnt',
+    color='weather_label',
+    title="🌤️ Pengaruh Cuaca"
+)
+
+st.plotly_chart(fig2, use_container_width=True)
+
+# ============================================================
+# HEATMAP
+# ============================================================
+pivot = hour_df.pivot_table(index='weekday_label', columns='hr', values='cnt', aggfunc='mean')
+
+fig3 = px.imshow(
+    pivot,
+    aspect="auto",
+    color_continuous_scale="YlOrRd",
+    title="⏰ Heatmap Peminjaman"
+)
+
+st.plotly_chart(fig3, use_container_width=True)
+
+# ============================================================
+# DISTRIBUTION
+# ============================================================
+st.subheader("Distribusi Pengguna")
+casual_pct = total_casual / total_rides
+st.progress(int(casual_pct * 100))
+st.caption(f"Casual: {casual_pct:.1%}")
+
+# ============================================================
+# FOOTER
+# ============================================================
 st.markdown("---")
-st.subheader("🔵 Segmentasi Performa Harian")
-c1, c2 = st.columns([1, 2])
-
-with c1:
-    st.write("Profil Cluster:")
-    profile = filtered_day.groupby('usage_cluster', observed=True)['cnt'].agg(['count', 'mean']).round(0)
-    st.table(profile)
-
-with c2:
-    with st.container(border=True):
-        fig_box, ax_box = plt.subplots(figsize=(10, 4))
-        sns.boxplot(data=filtered_day, x='usage_cluster', y='cnt', palette="Pastel1", ax=ax_box)
-        st.pyplot(fig_box)
-
-st.caption(f"Terakhir diperbarui: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}")
+st.markdown("<p style='text-align:center;color:gray'>Enhanced Dashboard Version</p>", unsafe_allow_html=True)
