@@ -19,12 +19,6 @@ plt.rcParams.update({
     'axes.spines.right': False,
 })
 
-CLUSTER_COLORS = {
-    'Low Usage': '#EF9A9A',
-    'Medium Usage': '#FFE082',
-    'High Usage': '#A5D6A7'
-}
-
 # ============================================================
 # LOAD DATA
 # ============================================================
@@ -68,7 +62,7 @@ st.sidebar.title("🚲 Bike Sharing")
 selected_yr = st.sidebar.selectbox("Tahun", ['Semua','2011','2012'])
 selected_season = st.sidebar.selectbox(
     "Musim",
-    ['Semua'] + list(day_df['season_label'].unique())
+    ['Semua'] + list(day_df['season_label'].dropna().unique())
 )
 
 # ============================================================
@@ -88,33 +82,42 @@ if selected_season != 'Semua':
 # HEADER
 # ============================================================
 st.title("🚲 Bike Sharing Dashboard")
+st.markdown("Analisis sederhana untuk memahami pola penggunaan sepeda secara lebih mudah")
 st.markdown("---")
 
 # ============================================================
-# METRIC
+# METRICS
 # ============================================================
 col1,col2,col3,col4 = st.columns(4)
 
 total = filtered_day['cnt'].sum()
 avg = filtered_day['cnt'].mean()
 
-col1.metric("Total", f"{total:,.0f}")
-col2.metric("Rata-rata", f"{avg:,.0f}")
-col3.metric("Max", f"{filtered_day['cnt'].max():,.0f}")
-col4.metric("Min", f"{filtered_day['cnt'].min():,.0f}")
+col1.metric("Total Peminjaman", f"{total:,.0f}")
+col2.metric("Rata-rata Harian", f"{avg:,.0f}")
+col3.metric("Tertinggi", f"{filtered_day['cnt'].max():,.0f}")
+col4.metric("Terendah", f"{filtered_day['cnt'].min():,.0f}")
 
-# Insight global
-if avg > 5000:
-    st.success("📈 Aktivitas tinggi")
-elif avg > 3000:
-    st.info("📊 Aktivitas stabil")
-else:
-    st.warning("📉 Aktivitas rendah")
+# ============================================================
+# EXECUTIVE SUMMARY
+# ============================================================
+st.markdown("### 🧠 Ringkasan Utama")
+
+st.info(
+    f"""
+- Aktivitas peminjaman berada di level **{"tinggi" if avg>5000 else "sedang" if avg>3000 else "rendah"}**
+- Penggunaan meningkat saat **cuaca baik dan musim tertentu**
+- Ada pola waktu penggunaan yang konsisten setiap hari
+
+💡 Secara umum, sepeda digunakan sebagai bagian dari aktivitas harian, 
+bukan hanya untuk rekreasi.
+"""
+)
 
 # ============================================================
 # TREND
 # ============================================================
-st.subheader("📈 Tren Bulanan")
+st.subheader("📈 Tren Peminjaman Bulanan")
 
 monthly = filtered_day.groupby(['year','month'])['cnt'].sum().reset_index()
 monthly['period'] = monthly['year'].astype(str)+'-'+monthly['month'].astype(str)
@@ -127,16 +130,22 @@ ax.tick_params(axis='x', rotation=45)
 ax.legend()
 st.pyplot(fig)
 
-# Insight tren
 peak = monthly.loc[monthly['cnt'].idxmax()]
 low = monthly.loc[monthly['cnt'].idxmin()]
 
-st.info(f"📊 Tertinggi: {peak['period']} ({peak['cnt']:,.0f}) | Terendah: {low['period']} ({low['cnt']:,.0f})")
+st.info(
+    f"""
+📊 Peminjaman paling tinggi terjadi pada **{peak['period']}** dengan sekitar **{peak['cnt']:,.0f} transaksi**  
+Sedangkan yang paling rendah terjadi pada **{low['period']}**
+
+💡 Artinya, ada periode tertentu dimana aktivitas bersepeda meningkat signifikan.
+"""
+)
 
 # ============================================================
 # CUACA & MUSIM
 # ============================================================
-st.subheader("🌤️ Cuaca & Musim")
+st.subheader("🌤️ Pengaruh Cuaca & Musim")
 
 colA,colB = st.columns(2)
 
@@ -152,16 +161,33 @@ with colB:
     ax3.bar(season_avg['season_label'], season_avg['cnt'])
     st.pyplot(fig3)
 
-# Insight
 best_weather = weather_avg.loc[weather_avg['cnt'].idxmax()]
+worst_weather = weather_avg.loc[weather_avg['cnt'].idxmin()]
 best_season = season_avg.loc[season_avg['cnt'].idxmax()]
+worst_season = season_avg.loc[season_avg['cnt'].idxmin()]
 
-st.success(f"🌟 Terbaik: {best_weather['weather_label']} & {best_season['season_label']}")
+st.success(
+    f"""
+🌤️ Orang paling sering bersepeda saat cuaca **{best_weather['weather_label']}**  
+dan pada musim **{best_season['season_label']}**
+
+💡 Artinya, kondisi yang nyaman mendorong orang lebih aktif bersepeda.
+"""
+)
+
+st.warning(
+    f"""
+⚠️ Aktivitas menurun saat cuaca **{worst_weather['weather_label']}**  
+dan pada musim **{worst_season['season_label']}**
+
+💡 Artinya, cuaca buruk membuat orang cenderung menghindari bersepeda.
+"""
+)
 
 # ============================================================
 # JAM
 # ============================================================
-st.subheader("⏰ Pola Jam")
+st.subheader("⏰ Pola Penggunaan per Jam")
 
 hourly = filtered_hour.groupby('hr')['cnt'].mean()
 
@@ -170,12 +196,20 @@ ax4.plot(hourly.index, hourly.values)
 st.pyplot(fig4)
 
 peak_hour = hourly.idxmax()
-st.info(f"⏰ Jam puncak: {peak_hour}:00")
+
+st.info(
+    f"""
+⏰ Puncak penggunaan terjadi sekitar jam **{peak_hour}:00**
+
+💡 Kemungkinan besar ini berkaitan dengan jam aktivitas utama 
+seperti berangkat kerja atau waktu santai di sore hari.
+"""
+)
 
 # ============================================================
 # HEATMAP
 # ============================================================
-st.subheader("🔥 Heatmap")
+st.subheader("🔥 Pola Hari & Jam")
 
 pivot = filtered_hour.pivot_table(index='weekday_label', columns='hr', values='cnt')
 
@@ -183,14 +217,20 @@ fig5, ax5 = plt.subplots(figsize=(12,4))
 sns.heatmap(pivot, cmap='YlOrRd', ax=ax5)
 st.pyplot(fig5)
 
-# Insight heatmap
 max_heat = pivot.stack().idxmax()
-st.info(f"🔥 Puncak: {max_heat[0]} jam {max_heat[1]}")
+
+st.info(
+    f"""
+🔥 Aktivitas tertinggi terjadi pada **{max_heat[0]} jam {max_heat[1]}**
+
+💡 Artinya, ada pola kebiasaan yang konsisten dalam penggunaan sepeda setiap minggu.
+"""
+)
 
 # ============================================================
 # CLUSTER
 # ============================================================
-st.subheader("🔵 Clustering")
+st.subheader("🔵 Segmentasi Penggunaan")
 
 cluster = filtered_day['usage_cluster'].value_counts()
 
@@ -198,10 +238,17 @@ fig6, ax6 = plt.subplots()
 ax6.pie(cluster, labels=cluster.index, autopct='%1.1f%%')
 st.pyplot(fig6)
 
-st.info(f"📊 Dominan: {cluster.idxmax()}")
+st.success(
+    f"""
+📊 Mayoritas hari termasuk kategori **{cluster.idxmax()}**
+
+💡 Artinya, sebagian besar hari memiliki tingkat penggunaan yang relatif stabil,
+tidak terlalu ekstrem tinggi atau rendah.
+"""
+)
 
 # ============================================================
 # FOOTER
 # ============================================================
 st.markdown("---")
-st.caption("Dashboard Bike Sharing")
+st.caption("Dashboard Analisis Bike Sharing")
