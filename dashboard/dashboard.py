@@ -207,6 +207,8 @@ sedangkan terendah pada <b>{low_m['period']}</b> ({int(low_m['cnt']):,} peminjam
 </div>""", unsafe_allow_html=True)
 
 
+
+
 # ════════════════════════════════════════════
 # PERTANYAAN 1
 # ════════════════════════════════════════════
@@ -302,6 +304,8 @@ with st.expander("Lihat tabel ringkasan Pertanyaan 1"):
         t2 = fd.groupby('season_label')['cnt'].agg(['mean','median','std','count']).round(1)
         t2.columns = ['Rata-rata', 'Median', 'Std Dev', 'Jumlah Hari']
         st.dataframe(t2.sort_values('Rata-rata', ascending=False), use_container_width=True)
+
+
 
 
 
@@ -446,6 +450,8 @@ yang mencerminkan pola commuter berangkat dan pulang kerja. Pengguna registered 
 Di hari libur, pola berubah menjadi satu puncak di sekitar jam 13.00, dengan proporsi pengguna casual yang lebih besar
 dibanding hari kerja. Heatmap mengonfirmasi bahwa slot 07-09 dan 16-19 di Senin-Jumat secara konsisten paling padat.
 </div>""", unsafe_allow_html=True)
+
+
 
 
 
