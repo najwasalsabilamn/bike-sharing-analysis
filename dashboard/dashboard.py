@@ -13,16 +13,12 @@ st.set_page_config(
 )
 
 # ============================================================
-# CUSTOM CSS (UI UPGRADE)
+# CUSTOM CSS
 # ============================================================
 st.markdown("""
 <style>
-.main {
-    background-color: #F8FAFC;
-}
-.block-container {
-    padding-top: 2rem;
-}
+.main {background-color: #F8FAFC;}
+.block-container {padding-top: 2rem;}
 .metric-card {
     background: white;
     padding: 15px;
@@ -30,9 +26,7 @@ st.markdown("""
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     transition: 0.2s;
 }
-.metric-card:hover {
-    transform: scale(1.03);
-}
+.metric-card:hover {transform: scale(1.03);}
 </style>
 """, unsafe_allow_html=True)
 
@@ -58,6 +52,15 @@ def load_data():
         df['weekday_label'] = df['weekday'].map(weekday_map)
         df['yr_label'] = df['yr'].map(yr_map)
 
+    # clustering
+    p33 = day_df['cnt'].quantile(0.33)
+    p67 = day_df['cnt'].quantile(0.67)
+    day_df['usage_cluster'] = pd.cut(
+        day_df['cnt'],
+        bins=[0, p33, p67, day_df['cnt'].max()+1],
+        labels=['Low Usage','Medium Usage','High Usage']
+    )
+
     return day_df, hour_df
 
 
@@ -67,8 +70,6 @@ day_df, hour_df = load_data()
 # SIDEBAR
 # ============================================================
 st.sidebar.title("🚲 Bike Sharing")
-st.sidebar.markdown("### Filter Data")
-
 selected_yr = st.sidebar.selectbox("Pilih Tahun", ['Semua','2011','2012'])
 selected_month = st.sidebar.multiselect(
     "Pilih Bulan",
@@ -77,114 +78,110 @@ selected_month = st.sidebar.multiselect(
 )
 
 # ============================================================
-# FILTER DATA
+# FILTER
 # ============================================================
 filtered_day = day_df.copy()
+filtered_hour = hour_df.copy()
 
 if selected_yr != 'Semua':
     filtered_day = filtered_day[filtered_day['yr_label'] == selected_yr]
+    filtered_hour = filtered_hour[filtered_hour['yr_label'] == selected_yr]
 
 filtered_day = filtered_day[filtered_day['month'].isin(selected_month)]
+filtered_hour = filtered_hour[filtered_hour['month'].isin(selected_month)]
 
 # ============================================================
 # HEADER
 # ============================================================
 st.markdown("""
-<h1 style='text-align: center;'>🚲 Bike Sharing Dashboard</h1>
-<p style='text-align: center; color: gray;'>Analisis interaktif penggunaan sepeda</p>
+<h1 style='text-align:center;'>🚲 Bike Sharing Dashboard</h1>
+<p style='text-align:center;color:gray;'>Dashboard interaktif & analisis penggunaan sepeda</p>
 """, unsafe_allow_html=True)
 
 # ============================================================
-# KPI CARDS
+# KPI
 # ============================================================
 def metric_card(title, value, subtitle):
     st.markdown(f"""
-    <div class="metric-card">
+    <div class='metric-card'>
         <h4>{title}</h4>
         <h2>{value}</h2>
         <p style='color:gray'>{subtitle}</p>
     </div>
     """, unsafe_allow_html=True)
 
-col1, col2, col3, col4 = st.columns(4)
+col1,col2,col3,col4 = st.columns(4)
 
-total_rides = filtered_day['cnt'].sum()
-avg_daily = filtered_day['cnt'].mean()
-total_casual = filtered_day['casual'].sum()
-total_registered = filtered_day['registered'].sum()
+total = filtered_day['cnt'].sum()
+avg = filtered_day['cnt'].mean()
+casual = filtered_day['casual'].sum()
+reg = filtered_day['registered'].sum()
 
-with col1:
-    metric_card("Total Ride", f"{total_rides:,.0f}", "Total keseluruhan")
-with col2:
-    metric_card("Avg Daily", f"{avg_daily:,.0f}", "Rata-rata harian")
-with col3:
-    metric_card("Casual", f"{total_casual:,.0f}", f"{total_casual/total_rides:.1%}")
-with col4:
-    metric_card("Registered", f"{total_registered:,.0f}", f"{total_registered/total_rides:.1%}")
+with col1: metric_card("Total Ride", f"{total:,.0f}", "Total")
+with col2: metric_card("Avg Daily", f"{avg:,.0f}", "Rata-rata")
+with col3: metric_card("Casual", f"{casual:,.0f}", f"{casual/total:.1%}")
+with col4: metric_card("Registered", f"{reg:,.0f}", f"{reg/total:.1%}")
 
 st.markdown("---")
 
 # ============================================================
-# TREND (PLOTLY)
+# TREND
 # ============================================================
 monthly = filtered_day.groupby(['year','month'], as_index=False)['cnt'].sum()
 monthly['period'] = monthly['year'].astype(str) + '-' + monthly['month'].astype(str)
 
-fig = px.line(
-    monthly,
-    x="period",
-    y="cnt",
-    color="year",
-    markers=True,
-    title="📈 Tren Peminjaman Bulanan"
-)
-
-fig.update_layout(hovermode="x unified")
+fig = px.line(monthly, x='period', y='cnt', color='year', markers=True,
+              title="📈 Tren Peminjaman Bulanan")
 st.plotly_chart(fig, use_container_width=True)
 
-# Insight otomatis
 peak = monthly.loc[monthly['cnt'].idxmax()]
-st.info(f"📌 Puncak peminjaman terjadi pada {peak['period']} dengan total {peak['cnt']:,.0f}")
+st.info(f"📌 Puncak di {peak['period']} dengan {peak['cnt']:,.0f} peminjaman")
 
 # ============================================================
-# WEATHER EFFECT
+# CUACA
 # ============================================================
 weather_avg = filtered_day.groupby('weather_label')['cnt'].mean().reset_index()
-
-fig2 = px.bar(
-    weather_avg,
-    x='weather_label',
-    y='cnt',
-    color='weather_label',
-    title="🌤️ Pengaruh Cuaca"
-)
-
+fig2 = px.bar(weather_avg, x='weather_label', y='cnt', color='weather_label',
+              title="🌤️ Pengaruh Cuaca")
 st.plotly_chart(fig2, use_container_width=True)
+
+# ============================================================
+# POLA JAM
+# ============================================================
+st.subheader("⏰ Pola Peminjaman per Jam")
+
+hourly = filtered_hour.groupby('hr')['cnt'].mean().reset_index()
+fig3 = px.line(hourly, x='hr', y='cnt', markers=True,
+               title="Rata-rata Peminjaman per Jam")
+st.plotly_chart(fig3, use_container_width=True)
 
 # ============================================================
 # HEATMAP
 # ============================================================
-pivot = hour_df.pivot_table(index='weekday_label', columns='hr', values='cnt', aggfunc='mean')
+pivot = filtered_hour.pivot_table(index='weekday_label', columns='hr', values='cnt', aggfunc='mean')
+fig4 = px.imshow(pivot, aspect='auto', color_continuous_scale='YlOrRd',
+                 title="🔥 Heatmap Hari vs Jam")
+st.plotly_chart(fig4, use_container_width=True)
 
-fig3 = px.imshow(
-    pivot,
-    aspect="auto",
-    color_continuous_scale="YlOrRd",
-    title="⏰ Heatmap Peminjaman"
-)
-
-st.plotly_chart(fig3, use_container_width=True)
+# ============================================================
+# CLUSTER
+# ============================================================
+st.subheader("🔵 Clustering Penggunaan")
+cluster_avg = filtered_day.groupby('usage_cluster')['cnt'].mean().reset_index()
+fig5 = px.bar(cluster_avg, x='usage_cluster', y='cnt', color='usage_cluster',
+              title="Rata-rata Peminjaman per Cluster")
+st.plotly_chart(fig5, use_container_width=True)
 
 # ============================================================
 # DISTRIBUTION
 # ============================================================
 st.subheader("Distribusi Pengguna")
-casual_pct = total_casual / total_rides
-st.progress(int(casual_pct * 100))
-st.caption(f"Casual: {casual_pct:.1%}")
+pct = casual/total
+st.progress(int(pct*100))
+st.caption(f"Casual: {pct:.1%}")
 
 # ============================================================
 # FOOTER
 # ============================================================
 st.markdown("---")
-st.markdown("<p style='text-align:center;color:gray'>Enhanced Dashboard Version</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;color:gray'>Final Enhanced Dashboard</p>", unsafe_allow_html=True)
