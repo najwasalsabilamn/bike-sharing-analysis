@@ -1,210 +1,147 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
+import plotly.express as px
 import os
 
-# ── CONFIG ───────────────────────────────────────────────────────────────────
-st.set_page_config(
-    page_title="Bike Sharing Dashboard",
-    page_icon="🚴",
-    layout="wide",
-)
+# ── CONFIG ─────────────────────────────
+st.set_page_config(layout="wide")
 
-# ── CUSTOM CSS (BIAR KELIATAN PRO) ───────────────────────────────────────────
+# ── STYLE ─────────────────────────────
 st.markdown("""
 <style>
-
-/* Background */
 body {
-    background-color: #f5f7fb;
+    background-color: #0B0F19;
 }
-
-/* Main container */
 .block-container {
     padding-top: 2rem;
-    padding-left: 3rem;
-    padding-right: 3rem;
 }
 
-/* Card style */
+/* CARD */
 .card {
-    background: white;
+    background: #111827;
     padding: 20px;
     border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+/* TITLE */
+.title {
+    font-size: 40px;
+    font-weight: 700;
+    color: white;
+}
+
+/* SUB */
+.sub {
+    color: #9CA3AF;
     margin-bottom: 20px;
 }
 
-/* Metric styling */
-[data-testid="stMetric"] {
-    background: white;
-    padding: 15px;
-    border-radius: 14px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+/* METRIC */
+.metric {
+    font-size: 28px;
+    font-weight: bold;
 }
 
-/* Title */
-h1, h2, h3 {
+/* SECTION */
+.section {
+    margin-top: 30px;
+    margin-bottom: 10px;
+    font-size: 22px;
     font-weight: 600;
+    color: white;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
-sns.set_theme(style="whitegrid")
-
-# ── LOAD DATA ────────────────────────────────────────────────────────────────
+# ── LOAD DATA ─────────────────────────
 @st.cache_data
-def load_data():
-    base = os.path.dirname(__file__)
-    path = os.path.join(base, "main_data.csv")
+def load():
+    path = os.path.join(os.path.dirname(__file__), "main_data.csv")
     df = pd.read_csv(path)
     df["dteday"] = pd.to_datetime(df["dteday"])
     return df
 
-try:
-    df = load_data()
-except:
-    st.error("File main_data.csv tidak ditemukan")
-    st.stop()
+df = load()
 
-# ── PREPROCESS ───────────────────────────────────────────────────────────────
-df["season_label"]  = df["season"].map({1:"Spring",2:"Summer",3:"Fall",4:"Winter"})
-df["weather_label"] = df["weathersit"].map({1:"Clear",2:"Mist",3:"Rain",4:"Heavy"})
-df["year"] = df["yr"].map({0:2011,1:2012})
+# ── PREPROCESS ────────────────────────
+df["year"] = df["yr"].map({0: 2011, 1: 2012})
+df["season"] = df["season"].map({1:"Spring",2:"Summer",3:"Fall",4:"Winter"})
+df["weather"] = df["weathersit"].map({1:"Clear",2:"Cloudy",3:"Rain"})
 
-def segment(x):
-    if x < 2000: return "Low"
-    elif x <= 5000: return "Medium"
-    return "High"
-
-df["segment"] = df["cnt"].apply(segment)
-
-# ── SIDEBAR ──────────────────────────────────────────────────────────────────
+# ── SIDEBAR ──────────────────────────
 with st.sidebar:
-    st.title("Bike Sharing")
+    st.title("🚴 Filter")
 
-    years = st.multiselect("Year", df["year"].unique(), default=df["year"].unique())
-    seasons = st.multiselect("Season", df["season_label"].unique(), default=df["season_label"].unique())
+    year = st.multiselect("Year", df["year"].unique(), df["year"].unique())
+    season = st.multiselect("Season", df["season"].unique(), df["season"].unique())
 
-# ── FILTER ───────────────────────────────────────────────────────────────────
-filtered = df[
-    (df["year"].isin(years)) &
-    (df["season_label"].isin(seasons))
-]
+filtered = df[(df["year"].isin(year)) & (df["season"].isin(season))]
 
-# ── HEADER CARD ──────────────────────────────────────────────────────────────
-st.markdown("""
-<div class="card">
-    <h2>Bike Sharing Dashboard</h2>
-    <p style="color:gray;">Analisis penyewaan sepeda (2011–2012)</p>
-</div>
-""", unsafe_allow_html=True)
+# ── HEADER ───────────────────────────
+st.markdown('<div class="title">🚴 Bike Dashboard</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub">Clean & Modern Data Visualization</div>', unsafe_allow_html=True)
 
-# ── METRICS ──────────────────────────────────────────────────────────────────
-m1, m2, m3, m4 = st.columns(4)
+# ── METRICS ──────────────────────────
+col1, col2, col3 = st.columns(3)
 
-m1.metric("Total Trips", f"{filtered['cnt'].sum():,.0f}")
-m2.metric("Avg / Day", f"{filtered['cnt'].mean():,.0f}")
-m3.metric("Peak", f"{filtered['cnt'].max():,.0f}")
-m4.metric("Casual %", f"{filtered['casual'].sum()/filtered['cnt'].sum()*100:.1f}%")
-
-# ── MONTHLY TREND ────────────────────────────────────────────────────────────
-monthly = filtered.groupby(["year","mnth"])["cnt"].mean().reset_index()
-
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.markdown("#### Monthly Trend")
-
-fig, ax = plt.subplots(figsize=(12,4))
-for yr, color in [(2011,"#3b82f6"),(2012,"#f97316")]:
-    sub = monthly[monthly["year"]==yr]
-    ax.plot(sub["mnth"], sub["cnt"], marker="o", color=color, label=yr)
-
-ax.legend()
-ax.spines[["top","right"]].set_visible(False)
-st.pyplot(fig)
-plt.close()
-
-st.markdown('</div>', unsafe_allow_html=True)
-
-# ── SEASON & WEATHER ─────────────────────────────────────────────────────────
-c1, c2 = st.columns(2)
-
-with c1:
+with col1:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown("#### Season")
-
-    s = filtered.groupby("season_label")["cnt"].mean()
-    fig, ax = plt.subplots()
-    ax.bar(s.index, s.values)
-    ax.spines[["top","right"]].set_visible(False)
-    st.pyplot(fig)
-    plt.close()
-
+    st.markdown("Total")
+    st.markdown(f'<div class="metric">{filtered["cnt"].sum():,.0f}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-with c2:
+with col2:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown("#### Weather")
-
-    w = filtered.groupby("weather_label")["cnt"].mean()
-    fig, ax = plt.subplots()
-    ax.bar(w.index, w.values)
-    ax.tick_params(axis='x', rotation=20)
-    ax.spines[["top","right"]].set_visible(False)
-    st.pyplot(fig)
-    plt.close()
-
+    st.markdown("Average")
+    st.markdown(f'<div class="metric">{filtered["cnt"].mean():,.0f}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ── HEATMAP ──────────────────────────────────────────────────────────────────
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.markdown("#### Heatmap")
-
-pivot = filtered.pivot_table(values="cnt", index="season_label", columns="weather_label")
-fig, ax = plt.subplots()
-sns.heatmap(pivot, annot=True, cmap="YlOrRd", ax=ax)
-
-st.pyplot(fig)
-plt.close()
-
-st.markdown('</div>', unsafe_allow_html=True)
-
-# ── SEGMENT ──────────────────────────────────────────────────────────────────
-c3, c4 = st.columns([1,2])
-
-with c3:
+with col3:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown("#### Segment")
-
-    counts = filtered["segment"].value_counts()
-    fig, ax = plt.subplots()
-    ax.pie(counts, labels=counts.index, autopct="%1.1f%%")
-    st.pyplot(fig)
-    plt.close()
-
+    st.markdown("Max")
+    st.markdown(f'<div class="metric">{filtered["cnt"].max():,.0f}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-with c4:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown("#### Segment by Season")
+# ── TREND ────────────────────────────
+st.markdown('<div class="section">📈 Monthly Trend</div>', unsafe_allow_html=True)
 
-    tab = pd.crosstab(filtered["season_label"], filtered["segment"])
-    tab.plot(kind="bar", stacked=True, ax=plt.gca())
-    plt.gca().spines[["top","right"]].set_visible(False)
+monthly = filtered.groupby("mnth")["cnt"].mean().reset_index()
 
-    st.pyplot(plt.gcf())
-    plt.close()
+fig = px.line(monthly, x="mnth", y="cnt", markers=True)
+fig.update_layout(
+    template="plotly_dark",
+    plot_bgcolor="#111827",
+    paper_bgcolor="#111827",
+)
 
-    st.markdown('</div>', unsafe_allow_html=True)
+st.plotly_chart(fig, use_container_width=True)
 
-# ── TABLE ────────────────────────────────────────────────────────────────────
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.markdown("#### Summary")
+# ── SEASON ───────────────────────────
+col4, col5 = st.columns(2)
 
-summary = filtered.groupby("segment")[["cnt","casual","registered"]].mean().round(1)
-st.dataframe(summary, use_container_width=True)
+with col4:
+    st.markdown('<div class="section">🌤️ Season</div>', unsafe_allow_html=True)
+    season_avg = filtered.groupby("season")["cnt"].mean().reset_index()
+    fig2 = px.bar(season_avg, x="season", y="cnt", color="season")
+    fig2.update_layout(template="plotly_dark")
+    st.plotly_chart(fig2, use_container_width=True)
 
-st.markdown('</div>', unsafe_allow_html=True)
+with col5:
+    st.markdown('<div class="section">🌧️ Weather</div>', unsafe_allow_html=True)
+    weather_avg = filtered.groupby("weather")["cnt"].mean().reset_index()
+    fig3 = px.bar(weather_avg, x="weather", y="cnt", color="weather")
+    fig3.update_layout(template="plotly_dark")
+    st.plotly_chart(fig3, use_container_width=True)
+
+# ── PIE ──────────────────────────────
+st.markdown('<div class="section">📊 Usage Distribution</div>', unsafe_allow_html=True)
+
+seg = filtered["cnt"].apply(lambda x: "Low" if x<2000 else "Medium" if x<5000 else "High")
+seg = seg.value_counts().reset_index()
+seg.columns = ["segment","count"]
+
+fig4 = px.pie(seg, names="segment", values="count")
+fig4.update_layout(template="plotly_dark")
+
+st.plotly_chart(fig4, use_container_width=True)
