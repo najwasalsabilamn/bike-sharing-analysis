@@ -95,25 +95,6 @@ col3.metric("Max", f"{filtered_day['cnt'].max():,.0f}")
 col4.metric("Min", f"{filtered_day['cnt'].min():,.0f}")
 
 # ============================================================
-# EXECUTIVE SUMMARY
-# ============================================================
-st.markdown("### 🧠 Ringkasan Utama")
-
-level = "tinggi" if avg > 5000 else "sedang" if avg > 3000 else "rendah"
-
-st.markdown(
-    f"""
-Dari data yang ditampilkan, terlihat bahwa tingkat peminjaman sepeda secara umum berada di kategori **{level}**.
-
-Kalau diperhatikan lebih lanjut, jumlah peminjaman cenderung meningkat saat kondisi cuaca sedang baik dan pada musim tertentu. Sebaliknya, saat cuaca kurang mendukung, aktivitas juga ikut menurun.
-
-Selain itu, ada pola penggunaan yang cukup konsisten dalam sehari, di mana peminjaman biasanya meningkat pada jam-jam tertentu.
-
-Secara keseluruhan, sepeda di sini tampaknya tidak hanya digunakan untuk rekreasi, tetapi juga sebagai bagian dari aktivitas harian.
-"""
-)
-
-# ============================================================
 # INTERAKTIF CONTROL
 # ============================================================
 metric_option = st.selectbox(
