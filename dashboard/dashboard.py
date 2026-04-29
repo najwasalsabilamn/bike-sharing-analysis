@@ -399,7 +399,7 @@ def make_composition_chart(data, title, peak_hr):
         plot_bgcolor='white', margin=dict(l=10,r=10,t=40,b=10),
         xaxis=dict(tickmode='linear', dtick=2),
         yaxis=dict(gridcolor='#f0f0f0'),
-        legend=dict(orientation='h', yanchor='bottom', y=1.02, x=0)
+        legend=dict(orientation='h', yanchor='top', y=-0.25, x=0)
     )
     if peak_hr is not None:
         fig.add_vline(x=peak_hr, line_dash='dash', line_color='red',
@@ -500,7 +500,7 @@ else:
             barmode='group', height=320, plot_bgcolor='white',
             margin=dict(l=10,r=10,t=40,b=10),
             yaxis=dict(gridcolor='#f0f0f0'),
-            legend=dict(orientation='h', y=1.1, x=0)
+            legend=dict(orientation='h', yanchor='top', y=-0.2, x=0)
         )
         st.plotly_chart(fig3b, use_container_width=True)
 
@@ -547,7 +547,7 @@ else:
             barmode='stack', height=320, plot_bgcolor='white',
             margin=dict(l=10,r=10,t=40,b=10),
             yaxis=dict(title='Persentase (%)', gridcolor='#f0f0f0'),
-            legend=dict(orientation='h', y=1.1, x=0)
+            legend=dict(orientation='h', yanchor='top', y=-0.2, x=0)
         )
         st.plotly_chart(fig3d, use_container_width=True)
 
@@ -575,7 +575,7 @@ else:
             barmode='stack', height=320, plot_bgcolor='white',
             margin=dict(l=10,r=10,t=40,b=10),
             yaxis=dict(title='Persentase (%)', gridcolor='#f0f0f0'),
-            legend=dict(orientation='h', y=1.1, x=0)
+            legend=dict(orientation='h', yanchor='top', y=-0.2, x=0)
         )
         st.plotly_chart(fig3e, use_container_width=True)
 
