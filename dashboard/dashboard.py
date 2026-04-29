@@ -82,7 +82,7 @@ if selected_season != 'Semua':
 # HEADER
 # ============================================================
 st.title("🚲 Bike Sharing Dashboard")
-st.markdown("Analisis sederhana untuk memahami pola penggunaan sepeda secara lebih mudah")
+st.markdown("Analisis sederhana untuk memahami pola penggunaan sepeda pada tahun 2011 dan 2012")
 st.markdown("---")
 
 # ============================================================
