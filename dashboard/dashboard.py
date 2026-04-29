@@ -601,6 +601,5 @@ st.markdown("---")
 st.markdown("""
 <div style='text-align:center; color:#999; font-size:12px; padding:16px 0;'>
     🚲 Bike Sharing Dashboard · Capital Bikeshare Washington D.C. 2011–2012<br>
-    Dibuat oleh <b>Najwa Salsabila</b> · Dicoding Data Analysis Submission
 </div>
 """, unsafe_allow_html=True)
